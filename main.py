@@ -176,6 +176,7 @@ class Game :
         self.message = ""
         self.boutonRecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Recommencer", BLACK, BLANC, ROUGE)
         self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
+        self.boutonDoubler = Bouton(LARGEUR - 200, HAUTEUR / 2 + 70, 150, 50, "Doubler", BLACK, BLANC, ROUGE)
         self.boutonAugmenterMise = Bouton(170, HAUTEUR - 95, 30, 30, "+", BLACK, BLANC, ROUGE)
         self.boutonDiminuerMise = Bouton(230, HAUTEUR - 95, 30, 30, "-", BLACK, BLANC, ROUGE)
         self.boutonDoublerMise = Bouton(170, HAUTEUR - 55, 30, 30, "x2", BLACK, BLANC, ROUGE)
@@ -255,6 +256,15 @@ class Game :
 
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
                         self.comparerMains()
+
+                    if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
+                        self.player.bet *= 2
+                        self.player.hit(self.deck)
+                        if self.player.isBusted():
+                            self.message = "Bust !"
+                            self.player.money -= self.player.bet
+                        else: self.comparerMains()
+
     
                     if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()):
                         self.reset()
@@ -277,6 +287,7 @@ class Game :
             self.dessinerMonaie()
             self.boutonTirer.dessiner(self.screen)
             self.boutonRester.dessiner(self.screen)
+            self.boutonDoubler.dessiner(self.screen)
             self.boutonAugmenterMise.dessiner(self.screen)
             self.boutonDiminuerMise.dessiner(self.screen)
             self.boutonDoublerMise.dessinerPetit(self.screen)
