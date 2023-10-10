@@ -53,7 +53,26 @@ class Bouton :
 
     def estClique(self, positionSouris):
         return self.x < positionSouris[0] < self.x + self.l and self.y < positionSouris[1] < self.y + self.h
+    
+class Icone :
+    def __init__(self, x, y, l, h, text, textCouleur, couleur) -> None:
+        self.x = x
+        self.y = y
+        self.l = l
+        self.h = h
+        self.text = text
+        self.textCouleur = textCouleur
+        self.couleur = couleur
 
+    def dessiner(self, screen):
+        pygame.draw.rect(screen, self.couleur, (self.x, self.y, self.l, self.h))
+        font = pygame.font.SysFont(None, 36)
+        textSurface = font.render(self.text, 1, self.textCouleur)
+        textRectangle = textSurface.get_rect(center = (self.x + self.l / 2, self.y + self.h / 2))
+        screen.blit(textSurface, textRectangle)
+
+
+        
 class Card :
     suit = None
     value = None
@@ -164,26 +183,42 @@ class Dealer(Player):
 
 class Game :
     def __init__(self) -> None:
+        self.afficherBoutonAssurance = False
+        self.assurence = False
+
         self.canDouble = False
+
         self.gameStarted = False
+
         self.player = Player()
+
         self.dealer = Dealer()
+
         self.deck = Deck()
         self.deck.shuffle()
         self.deck.addCuttingCard()
+
         self.screen = pygame.display.set_mode((LARGEUR, HAUTEUR))
+
         pygame.display.set_caption("Blackjack")
+        
         self.clock = pygame.time.Clock()
-        self.boutonTirer = Bouton(LARGEUR - 200, HAUTEUR / 2, 150, 50, "Tirer", BLACK, BLANC, ROUGE)
+
         self.message = ""
+
+        self.boutonTirer = Bouton(LARGEUR - 200, HAUTEUR / 2, 150, 50, "Tirer", BLACK, BLANC, ROUGE)
         self.boutonRecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Recommencer", BLACK, BLANC, ROUGE)
-        self.boutonCecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Commencer", BLACK, BLANC, ROUGE)
+        self.boutonCommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Commencer", BLACK, BLANC, ROUGE)
         self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
         self.boutonDoubler = Bouton(LARGEUR - 200, HAUTEUR / 2 + 70, 150, 50, "Doubler", BLACK, BLANC, ROUGE)
         self.boutonAugmenterMise = Bouton(170, HAUTEUR - 95, 30, 30, "+", BLACK, BLANC, ROUGE)
         self.boutonDiminuerMise = Bouton(230, HAUTEUR - 95, 30, 30, "-", BLACK, BLANC, ROUGE)
         self.boutonDoublerMise = Bouton(170, HAUTEUR - 55, 30, 30, "x2", BLACK, BLANC, ROUGE)
         self.boutonDiviserMise = Bouton(230, HAUTEUR - 55, 30, 30, "/2", BLACK, BLANC, ROUGE)
+        self.boutonAssurance = Bouton(LARGEUR-200, HAUTEUR/2 - 250, 150, 30, "Assurance", BLACK, BLANC, ROUGE)
+
+        self.iconeAssurance = Icone(LARGEUR-200, HAUTEUR/2 - 250, 150, 30, "Assurance", BLACK, ROUGE)
+        
 
     def reset(self):
         self.gameStarted = True
@@ -251,10 +286,11 @@ class Game :
             self.player.money += self.player.bet * 1.5
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
-            if self.dealer.hand.cards[0] =='1':
+            if self.dealer.hand.cards[0].value =='1':
                 self.perdre() 
             else :
                 self.dealer.retournerCarte(0)
+                self.afficherBoutonAssurance = True
         else:
             self.dealer.retournerCarte(0)
 
@@ -279,7 +315,7 @@ class Game :
                         elif self.player.hand.calculerTotal() == 21:
                             self.comparerMains()
 
-                    if not self.message and self.boutonCecommencer.estClique(pygame.mouse.get_pos()):
+                    if not self.message and self.boutonCommencer.estClique(pygame.mouse.get_pos()):
                         self.start()
 
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
@@ -329,9 +365,14 @@ class Game :
                                 self.player.bet = 10
                     
             self.screen.fill(BACKGROUND_COLOR)
+
+            if self.afficherBoutonAssurance:
+                self.boutonAssurance.dessinerPetit(self.screen)
+
             self.dessinerMonaie()
+
             if not self.gameStarted :
-                self.boutonCecommencer.dessiner(self.screen)
+                self.boutonCommencer.dessiner(self.screen)
 
             if self.gameStarted:
                 self.boutonTirer.dessiner(self.screen)
@@ -348,6 +389,7 @@ class Game :
 
             self.player.dessiner(self.screen, HAUTEUR - CARTE_HAUTEUR - 15)
             self.dealer.dessiner(self.screen, 15)
+
             if self.message:
                 self.afficherMessage(self.screen, self.message)
                 self.boutonRecommencer.dessiner(self.screen)
