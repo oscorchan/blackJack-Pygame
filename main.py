@@ -2,7 +2,7 @@ import pygame
 import random
     
 LARGEUR = 1000
-HAUTEUR = 800
+HAUTEUR = 750
 
 CARTE_LARGEUR = 96
 CARTE_HAUTEUR = 144
@@ -38,6 +38,19 @@ class Bouton :
         textRectangle = textSurface.get_rect(center = (self.x + self.l / 2, self.y + self.h / 2))
         screen.blit(textSurface, textRectangle)
 
+    def dessinerPetit(self, screen):
+        positionSouris = pygame.mouse.get_pos()
+
+        if self.x < positionSouris[0] < self.x + self.l and self.y < positionSouris[1] < self.y + self.h:
+            pygame.draw.rect(screen, self.couleurSubbriance, (self.x, self.y, self.l, self.h))
+        else :
+            pygame.draw.rect(screen, self.couleur, (self.x, self.y, self.l, self.h))
+
+        font = pygame.font.SysFont(None, 36)
+        textSurface = font.render(self.text, 1, self.textCouleur)
+        textRectangle = textSurface.get_rect(center = (self.x + self.l / 2, self.y + self.h / 2))
+        screen.blit(textSurface, textRectangle)
+
     def estClique(self, positionSouris):
         return self.x < positionSouris[0] < self.x + self.l and self.y < positionSouris[1] < self.y + self.h
 
@@ -59,17 +72,26 @@ class Deck :
     cards = None
 
     def __init__(self) -> None:
+        self.cuttingCardDraw = False
         self.cards = []
-        for suit in ["S", "H", 'C', 'D']:
-            for value in range(1, 14):
-                self.cards.append(Card(suit, value))
+        for i in range(0, 6):
+            for suit in ["S", "H", 'C', 'D']:
+                for value in range(1, 14):
+                    self.cards.append(Card(suit, value))
 
     def shuffle(self) -> None:
         random.shuffle(self.cards)
+    
+    def addCuttingCard(self):
+        indexMilieu = round(len(self.cards) // 2)
+        self.cards.insert(indexMilieu, Card("R", 0))
 
     def deal(self) :
         if len(self.cards) != 0:
-            return self.cards.pop()
+            card = self.cards.pop()
+            if card.suit == 'R':
+                self.cuttingCardDraw = True
+            return card
         else :
             print("Erreur, plus de cartes dans le deck")
     
@@ -117,6 +139,7 @@ class Player :
     def __init__(self) -> None:
         self.hand = Hand()
         self.money = 500
+        self.bet = 50
 
     def dessiner(self, screen, y):
         xOffset = round((LARGEUR - CARTE_LARGEUR - 15)/2)
@@ -145,6 +168,7 @@ class Game :
         self.dealer = Dealer()
         self.deck = Deck()
         self.deck.shuffle()
+        self.deck.addCuttingCard()
         self.screen = pygame.display.set_mode((LARGEUR, HAUTEUR))
         pygame.display.set_caption("Blackjack")
         self.clock = pygame.time.Clock()
@@ -152,6 +176,19 @@ class Game :
         self.message = ""
         self.boutonRecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Recommencer", BLACK, BLANC, ROUGE)
         self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
+        self.boutonAugmenterMise = Bouton(170, HAUTEUR - 95, 30, 30, "+", BLACK, BLANC, ROUGE)
+        self.boutonDiminuerMise = Bouton(230, HAUTEUR - 95, 30, 30, "-", BLACK, BLANC, ROUGE)
+        self.boutonDoublerMise = Bouton(170, HAUTEUR - 55, 30, 30, "x2", BLACK, BLANC, ROUGE)
+        self.boutonDiviserMise = Bouton(230, HAUTEUR - 55, 30, 30, "/2", BLACK, BLANC, ROUGE)
+
+    def reset(self):
+        if self.deck.cuttingCardDraw:
+            self.deck = Deck()
+            self.deck.shuffle()
+            self.deck.addCuttingCard()
+        self.player.hand = Hand()
+        self.dealer.hand = Hand()
+        self.message = ""
 
     def afficherMessage(self, screen, message):
         font = pygame.font.SysFont(None, 56)
@@ -159,19 +196,45 @@ class Game :
         textRectangle = textSurface.get_rect(center = (LARGEUR/2, HAUTEUR/2))
         screen.blit(textSurface, textRectangle)
 
+    def dessinerMonaie(self):
+        font = pygame.font.SysFont(None, 36)
+        textSurface = font.render("Argent : " + str(self.player.money), 1, BLACK)
+        textRect = textSurface.get_rect(topleft=(10,HAUTEUR - 50))
+        self.screen.blit(textSurface, textRect)
+
+        textSurfaceMise = font.render("Mise : "+ str(self.player.bet), 1, BLACK)
+        textMiseRect = textSurfaceMise.get_rect(topleft=(10, HAUTEUR - 90))
+        self.screen.blit(textSurfaceMise, textMiseRect)
+
+    def comparerMains(self):
+        self.dealer.retournerCarte(0)
+        while self.dealer.hand.calculerTotal() < 17 :
+            self.dealer.hit(self.deck)
+        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
+            self.message = "Perdu !"
+            self.player.money -= self.player.bet
+        elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
+            self.message = "Gagné !"
+            self.player.money += self.player.bet
+        else:
+            self.message = "Egalité"
+
     def play(self):
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
 
+
         if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
             print("les deux joueurs ont gagnés")
             self.message = "egalité"
         elif self.player.hand.hasBlackjack():
             self.message = "BlackJack"  
+            self.player.money += self.player.bet * 1.5
         elif self.dealer.hand.hasBlackjack():
-            self.message = "Perdu"   
+            self.message = "Perdu"
+            self.player.money -= self.player.bet   
         else :
             self.dealer.retournerCarte(0)
 
@@ -182,33 +245,42 @@ class Game :
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21:
+                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
                         self.player.hit(self.deck)
                         if self.player.isBusted():
                             self.message = "Bust !"
+                            self.player.money -= self.player.bet
                         elif self.player.hand.calculerTotal() == 21:
-                            self.message = "21"
+                            self.comparerMains()
 
-                    if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted():
-                        self.dealer.retournerCarte(0)
-                        while self.dealer.hand.calculerTotal() < 17 :
-                            self.dealer.hit(self.deck)
-                        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
-                            self.message = "Perdu !"
-                        elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
-                            self.message = "Gagné !"
-                        else:
-                            self.message = "Egalité"
-                        
+                    if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
+                        self.comparerMains()
     
                     if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()):
-                        self.__init__()
+                        self.reset()
                         self.play()
                         return
                     
+                    if self.boutonAugmenterMise.estClique(pygame.mouse.get_pos()):
+                        self.player.bet += 10
+                    
+                    if self.boutonDiminuerMise.estClique(pygame.mouse.get_pos()):
+                        self.player.bet -= 10
+
+                    if self.boutonDoublerMise.estClique(pygame.mouse.get_pos()):
+                        self.player.bet *= 2
+
+                    if self.boutonDiviserMise.estClique(pygame.mouse.get_pos()):
+                        self.player.bet /= 2
+                    
             self.screen.fill(BACKGROUND_COLOR)
+            self.dessinerMonaie()
             self.boutonTirer.dessiner(self.screen)
             self.boutonRester.dessiner(self.screen)
+            self.boutonAugmenterMise.dessiner(self.screen)
+            self.boutonDiminuerMise.dessiner(self.screen)
+            self.boutonDoublerMise.dessinerPetit(self.screen)
+            self.boutonDiviserMise.dessinerPetit(self.screen)
             self.player.dessiner(self.screen, HAUTEUR - CARTE_HAUTEUR - 15)
             self.dealer.dessiner(self.screen, 15)
             if self.message:
