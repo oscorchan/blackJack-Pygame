@@ -272,6 +272,7 @@ class Game :
                         if self.player.isBusted():
                             self.message = "Bust !"
                             self.player.money -= self.player.bet
+                            self.gameStarted = False
                         elif self.player.hand.calculerTotal() == 21:
                             self.comparerMains()
 
@@ -287,27 +288,42 @@ class Game :
                         if self.player.isBusted():
                             self.message = "Bust !"
                             self.player.money -= self.player.bet
+                            self.gameStarted = False
                         else: 
                             self.comparerMains()
 
                         self.player.bet /= 2
 
     
-                    if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()):
+                    if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()) and self.player.money > 0 and self.player.money >= self.player.bet:
                         self.reset()
                         self.start()
                     
                     if self.boutonAugmenterMise.estClique(pygame.mouse.get_pos()):
-                        self.player.bet += 10
+                        if self.player.money >= self.player.bet + 10:
+                            self.player.bet += 10
+                        else :
+                            self.player.bet = self.player.money
                     
                     if self.boutonDiminuerMise.estClique(pygame.mouse.get_pos()):
-                        self.player.bet -= 10
+                        if self.player.bet >= 10:
+                            self.player.bet -= 10
+                        else :
+                            self.player.bet = 0
 
                     if self.boutonDoublerMise.estClique(pygame.mouse.get_pos()):
-                        self.player.bet *= 2
+                        if self.player.money >= self.player.bet * 2:
+                            self.player.bet *= 2
+                        else :
+                            self.player.bet = self.player.money
 
                     if self.boutonDiviserMise.estClique(pygame.mouse.get_pos()):
-                        self.player.bet /= 2
+                        self.player.bet = round(self.player.bet /2)
+                        if self.player.bet < 10:
+                            if self.player.money < 10:
+                                self.player.bet = self.player.money
+                            else:
+                                self.player.bet = 10
                     
             self.screen.fill(BACKGROUND_COLOR)
             self.dessinerMonaie()
