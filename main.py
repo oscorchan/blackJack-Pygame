@@ -203,11 +203,11 @@ class Game :
 
     def dessinerMonaie(self):
         font = pygame.font.SysFont(None, 36)
-        textSurface = font.render("Argent : " + str(self.player.money), 1, BLACK)
+        textSurface = font.render("Argent : " + str(round(self.player.money)), 1, BLACK)
         textRect = textSurface.get_rect(topleft=(10,HAUTEUR - 50))
         self.screen.blit(textSurface, textRect)
 
-        textSurfaceMise = font.render("Mise : "+ str(self.player.bet), 1, BLACK)
+        textSurfaceMise = font.render("Mise : "+ str(round(self.player.bet)), 1, BLACK)
         textMiseRect = textSurfaceMise.get_rect(topleft=(10, HAUTEUR - 90))
         self.screen.blit(textSurfaceMise, textMiseRect)
 
@@ -251,7 +251,10 @@ class Game :
             self.player.money += self.player.bet * 1.5
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
-            self.perdre() 
+            if self.dealer.hand.cards[0] =='1':
+                self.perdre() 
+            else :
+                self.dealer.retournerCarte(0)
         else:
             self.dealer.retournerCarte(0)
 
