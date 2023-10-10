@@ -175,6 +175,7 @@ class Game :
         self.boutonTirer = Bouton(LARGEUR - 200, HAUTEUR / 2, 150, 50, "Tirer", BLACK, BLANC, ROUGE)
         self.message = ""
         self.boutonRecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Recommencer", BLACK, BLANC, ROUGE)
+        self.boutonCecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Commencer", BLACK, BLANC, ROUGE)
         self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
         self.boutonDoubler = Bouton(LARGEUR - 200, HAUTEUR / 2 + 70, 150, 50, "Doubler", BLACK, BLANC, ROUGE)
         self.boutonAugmenterMise = Bouton(170, HAUTEUR - 95, 30, 30, "+", BLACK, BLANC, ROUGE)
@@ -220,25 +221,28 @@ class Game :
         else:
             self.message = "Egalité"
 
+    def start(none):
+        def start(self):
+            self.player.hand.addCard(self.deck.deal())
+            self.dealer.hand.addCard(self.deck.deal())
+            self.player.hand.addCard(self.deck.deal())
+            self.dealer.hand.addCard(self.deck.deal())
+
+            if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
+                self.message = "Egalité"
+            elif self.player.hand.hasBlackjack():
+                self.message = "BlackJack"  
+                self.player.money += self.player.bet * 1.5
+            elif self.dealer.hand.hasBlackjack():
+                self.message = "Perdu"
+                self.player.money -= self.player.bet   
+            else:
+                self.dealer.retournerCarte(0)
+
+            return
+
     def play(self):
-        self.player.hand.addCard(self.deck.deal())
-        self.dealer.hand.addCard(self.deck.deal())
-        self.player.hand.addCard(self.deck.deal())
-        self.dealer.hand.addCard(self.deck.deal())
-
-
-        if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
-            print("les deux joueurs ont gagnés")
-            self.message = "egalité"
-        elif self.player.hand.hasBlackjack():
-            self.message = "BlackJack"  
-            self.player.money += self.player.bet * 1.5
-        elif self.dealer.hand.hasBlackjack():
-            self.message = "Perdu"
-            self.player.money -= self.player.bet   
-        else :
-            self.dealer.retournerCarte(0)
-
+    
         running = True
 
         while running :
@@ -253,6 +257,9 @@ class Game :
                             self.player.money -= self.player.bet
                         elif self.player.hand.calculerTotal() == 21:
                             self.comparerMains()
+
+                    if not self.message and self.boutonCecommencer.estClique(pygame.mouse.get_pos()):
+                        self.start()
 
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
                         self.comparerMains()
@@ -285,6 +292,7 @@ class Game :
                     
             self.screen.fill(BACKGROUND_COLOR)
             self.dessinerMonaie()
+            self.boutonCecommencer.dessiner(self.screen)
             self.boutonTirer.dessiner(self.screen)
             self.boutonRester.dessiner(self.screen)
             self.boutonDoubler.dessiner(self.screen)
