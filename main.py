@@ -151,6 +151,7 @@ class Game :
         self.boutonTirer = Bouton(LARGEUR - 200, HAUTEUR / 2, 150, 50, "Tirer", BLACK, BLANC, ROUGE)
         self.message = ""
         self.boutonRecommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Recommencer", BLACK, BLANC, ROUGE)
+        self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
 
     def afficherMessage(self, screen, message):
         font = pygame.font.SysFont(None, 56)
@@ -170,7 +171,7 @@ class Game :
         elif self.player.hand.hasBlackjack():
             self.message = "BlackJack"  
         elif self.dealer.hand.hasBlackjack():
-            self.message("Perdu")   
+            self.message = "Perdu"   
         else :
             self.dealer.retournerCarte(0)
 
@@ -187,6 +188,18 @@ class Game :
                             self.message = "Bust !"
                         elif self.player.hand.calculerTotal() == 21:
                             self.message = "21"
+
+                    if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted():
+                        self.dealer.retournerCarte(0)
+                        while self.dealer.hand.calculerTotal() < 17 :
+                            self.dealer.hit(self.deck)
+                        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
+                            self.message = "Perdu !"
+                        elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
+                            self.message = "Gagné !"
+                        else:
+                            self.message = "Egalité"
+                        
     
                     if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()):
                         self.__init__()
@@ -195,6 +208,7 @@ class Game :
                     
             self.screen.fill(BACKGROUND_COLOR)
             self.boutonTirer.dessiner(self.screen)
+            self.boutonRester.dessiner(self.screen)
             self.player.dessiner(self.screen, HAUTEUR - CARTE_HAUTEUR - 15)
             self.dealer.dessiner(self.screen, 15)
             if self.message:
@@ -204,17 +218,5 @@ class Game :
             pygame.display.flip()
             self.clock.tick(60)
 
-    
-
 game = Game()
 game.play()
-
-
-
-
-
-
-
-
-
-
