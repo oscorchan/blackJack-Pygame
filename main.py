@@ -20,7 +20,7 @@ class Card :
         self.value = value
         self.image = pygame.image.load(f"images/{self.suit}_{self.value}.png")
         self.backImage = pygame.image.load("images/back.png")
-        self.faceUp = False
+        self.faceUp = True
         
     def flip(self):
         self.faceUp = not self.faceUp
@@ -38,7 +38,10 @@ class Deck :
         random.shuffle(self.cards)
 
     def deal(self) :
-        return self.cards.pop()
+        if len(self.cards) != 0:
+            return self.cards.pop()
+        else :
+            print("Erreur, plus de cartes dans le deck")
     
     def lenght(self) :
         return len(self.cards)
@@ -85,9 +88,14 @@ class Player :
             imageToDraw = card.image if card.faceUp else card.backImage
             screen.blit(imageToDraw, (xOffset, y))
             xOffset += 20
+
     def retournerCarte(self, index):
         if index < len(self.hand.cards):
             self.hand.cards[index].flip()
+        
+    def hit(self, deck):
+        card = deck.deal()
+        self.hand.addCard(card)
 
 class Dealer(Player):
     pass
@@ -109,28 +117,14 @@ class Game :
         self.dealer.hand.addCard(self.deck.deal())
 
         if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
-            #les deux joueurs ont gagnés
-            self.player.retournerCarte(0)
-            self.player.retournerCarte(1)
-            self.dealer.retournerCarte(0)
-            self.dealer.retournerCarte(1)
+            print("les deux joueurs ont gagnés")
         elif self.player.hand.hasBlackjack():
             #le joueur a gagné
-            self.player.retournerCarte(0)
-            self.player.retournerCarte(1)
-            self.dealer.retournerCarte(0)
-            self.dealer.retournerCarte(1)   
+            self.dealer.retournerCarte(1)  
         elif self.dealer.hand.hasBlackjack():
-            #le dealer a gagné
-            self.player.retournerCarte(0)
-            self.player.retournerCarte(1)
-            self.dealer.retournerCarte(0)
-            self.dealer.retournerCarte(1)    
+            print("le dealer a gagné")   
         else :
-            self.player.retournerCarte(0)
-            self.player.retournerCarte(1)
-
-            self.dealer.retournerCarte(1)
+            self.dealer.retournerCarte(0)
 
         running = True
 
@@ -138,6 +132,10 @@ class Game :
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.player.hit(self.deck)
+
+
 
             self.screen.fill(BACKGROUND_COLOR)
 
@@ -146,6 +144,8 @@ class Game :
 
             pygame.display.flip()
             self.clock.tick(60)
+
+    
 
 game = Game()
 game.play()
