@@ -164,6 +164,8 @@ class Dealer(Player):
 
 class Game :
     def __init__(self) -> None:
+        self.canDouble = False
+        self.gameStarted = False
         self.player = Player()
         self.dealer = Dealer()
         self.deck = Deck()
@@ -184,6 +186,7 @@ class Game :
         self.boutonDiviserMise = Bouton(230, HAUTEUR - 55, 30, 30, "/2", BLACK, BLANC, ROUGE)
 
     def reset(self):
+        self.gameStarted = True
         if self.deck.cuttingCardDraw:
             self.deck = Deck()
             self.deck.shuffle()
@@ -208,38 +211,51 @@ class Game :
         textMiseRect = textSurfaceMise.get_rect(topleft=(10, HAUTEUR - 90))
         self.screen.blit(textSurfaceMise, textMiseRect)
 
+    def perdre(self):
+        self.message = "Perdu !"
+        self.player.money -= self.player.bet
+        self.gameStarted = False
+
+    def gagner(self):
+        self.message = "Gagné !"
+        self.player.money += self.player.bet
+        self.gameStarted = False
+
+    def egalite(self):
+        self.message = "Egalité"
+        self.gameStarted = False
+
     def comparerMains(self):
         self.dealer.retournerCarte(0)
         while self.dealer.hand.calculerTotal() < 17 :
             self.dealer.hit(self.deck)
         if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
-            self.message = "Perdu !"
-            self.player.money -= self.player.bet
+            self.perdre()
         elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
-            self.message = "Gagné !"
-            self.player.money += self.player.bet
+            self.gagner()
         else:
-            self.message = "Egalité"
+            self.egalite()
 
-    def start(none):
-        def start(self):
-            self.player.hand.addCard(self.deck.deal())
-            self.dealer.hand.addCard(self.deck.deal())
-            self.player.hand.addCard(self.deck.deal())
-            self.dealer.hand.addCard(self.deck.deal())
+    def start(self):
+        self.canDouble = True
+        self.gameStarted = True
+        self.player.hand.addCard(self.deck.deal())
+        self.dealer.hand.addCard(self.deck.deal())
+        self.player.hand.addCard(self.deck.deal())
+        self.dealer.hand.addCard(self.deck.deal())
 
-            if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
-                self.message = "Egalité"
-            elif self.player.hand.hasBlackjack():
-                self.message = "BlackJack"  
-                self.player.money += self.player.bet * 1.5
-            elif self.dealer.hand.hasBlackjack():
-                self.message = "Perdu"
-                self.player.money -= self.player.bet   
-            else:
-                self.dealer.retournerCarte(0)
+        if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
+            self.egalite()
+        elif self.player.hand.hasBlackjack():
+            self.message = "BlackJack"  
+            self.player.money += self.player.bet * 1.5
+            self.gameStarted = False
+        elif self.dealer.hand.hasBlackjack():
+            self.perdre() 
+        else:
+            self.dealer.retournerCarte(0)
 
-            return
+        return
 
     def play(self):
     
@@ -251,6 +267,7 @@ class Game :
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
+                        self.canDouble = False
                         self.player.hit(self.deck)
                         if self.player.isBusted():
                             self.message = "Bust !"
@@ -264,19 +281,21 @@ class Game :
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
                         self.comparerMains()
 
-                    if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
+                    if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble:
                         self.player.bet *= 2
                         self.player.hit(self.deck)
                         if self.player.isBusted():
                             self.message = "Bust !"
                             self.player.money -= self.player.bet
-                        else: self.comparerMains()
+                        else: 
+                            self.comparerMains()
+
+                        self.player.bet /= 2
 
     
                     if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()):
                         self.reset()
-                        self.play()
-                        return
+                        self.start()
                     
                     if self.boutonAugmenterMise.estClique(pygame.mouse.get_pos()):
                         self.player.bet += 10
@@ -292,14 +311,22 @@ class Game :
                     
             self.screen.fill(BACKGROUND_COLOR)
             self.dessinerMonaie()
-            self.boutonCecommencer.dessiner(self.screen)
-            self.boutonTirer.dessiner(self.screen)
-            self.boutonRester.dessiner(self.screen)
-            self.boutonDoubler.dessiner(self.screen)
-            self.boutonAugmenterMise.dessiner(self.screen)
-            self.boutonDiminuerMise.dessiner(self.screen)
-            self.boutonDoublerMise.dessinerPetit(self.screen)
-            self.boutonDiviserMise.dessinerPetit(self.screen)
+            if not self.gameStarted :
+                self.boutonCecommencer.dessiner(self.screen)
+
+            if self.gameStarted:
+                self.boutonTirer.dessiner(self.screen)
+                self.boutonRester.dessiner(self.screen)
+
+            if self.gameStarted and self.canDouble:
+                self.boutonDoubler.dessiner(self.screen)
+
+            if not self.gameStarted:
+                self.boutonAugmenterMise.dessiner(self.screen)
+                self.boutonDiminuerMise.dessiner(self.screen)
+                self.boutonDoublerMise.dessinerPetit(self.screen)
+                self.boutonDiviserMise.dessinerPetit(self.screen)
+
             self.player.dessiner(self.screen, HAUTEUR - CARTE_HAUTEUR - 15)
             self.dealer.dessiner(self.screen, 15)
             if self.message:
