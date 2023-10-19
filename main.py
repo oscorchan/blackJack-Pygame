@@ -74,9 +74,6 @@ class Icone :
 
         
 class Card :
-    suit = None
-    value = None
-
     def __init__(self, suit, value) -> None:
         self.suit = suit
         self.value = value
@@ -97,6 +94,7 @@ class Deck :
             for suit in ["S", "H", 'C', 'D']:
                 for value in range(1, 14):
                     self.cards.append(Card(suit, value))
+        self.dealSound = pygame.mixer.Sound("sounds/deal.mp3")
 
     def shuffle(self) -> None:
         random.shuffle(self.cards)
@@ -108,8 +106,12 @@ class Deck :
     def deal(self) :
         if len(self.cards) != 0:
             card = self.cards.pop()
+
+            self.dealSound.play()
+            
             if card.suit == 'R':
                 self.cuttingCardDraw = True
+
             return card
         else :
             print("Erreur, plus de cartes dans le deck")
@@ -219,6 +221,10 @@ class Game :
         self.boutonPasAssurance = Bouton(LARGEUR-200, HAUTEUR/2 - 200, 200, 30, "Pas d'assurance", BLACK, BLANC, ROUGE)
 
         self.iconeAssurance = Icone(LARGEUR-200, HAUTEUR/2 - 250, 150, 30, "Assurance", BLACK, ROUGE)
+
+        self.winSound = pygame.mixer.Sound("sounds/win.mp3")
+        self.looseSound = pygame.mixer.Sound("sounds/loose.mp3")
+        self.rienNeVasPlusSound = pygame.mixer.SoundType("sounds/rienNeVasPlus.mp3")
         
 
     def reset(self):
@@ -250,21 +256,25 @@ class Game :
     def perdre(self):
         self.message = "Perdu !"
         self.gameStarted = False
+        self.looseSound.play()
 
     def gagner(self):
         self.message = "Gagné !"
         self.player.money += 2*self.player.bet
         self.gameStarted = False
+        self.winSound.play()
 
     def egalite(self):
         self.message = "Egalité"
         self.player.money += self.player.bet
         self.gameStarted = False
+        self.winSound.play()
 
     def perdreAvecAssurance(self):
         self.message = "Perdu !"
         self.player.money += 1.5 * self.player.bet
         self.gameStarted = False
+        self.winSound.play()
 
     def comparerMains(self):
         self.dealer.retournerCarte(0)
@@ -281,19 +291,26 @@ class Game :
             self.egalite()
 
     def start(self):
+        self.rienNeVasPlusSound.play()
         self.canDouble = True
         self.gameStarted = True
         self.assurence = False
+
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
+
         self.player.money -= self.player.bet
+
+        self.deck.dealSound.set_volume(1)
 
         if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
             self.egalite()
+            self.winSound.play()
         elif self.player.hand.hasBlackjack():
             self.message = "BlackJack"  
+            self.winSound.play()
             self.player.money += self.player.bet * 2.5
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
@@ -302,6 +319,7 @@ class Game :
                 self.dealer.retournerCarte(0)
             else :
                 self.perdre()
+                self.looseSound.play()
         else:
             self.dealer.retournerCarte(0)
 
@@ -325,6 +343,7 @@ class Game :
                         if self.player.isBusted():
                             self.message = "Bust !"
                             self.player.money -= self.player.bet
+                            self.looseSound.play()
                             self.gameStarted = False
                         elif self.player.hand.calculerTotal() == 21:
                             self.comparerMains()
@@ -336,7 +355,7 @@ class Game :
                     elif self.boutonPasAssurance.estClique(pygame.mouse.get_pos()):
                         self.afficherBoutonAssurance = False
 
-                    if not self.message and self.boutonCommencer.estClique(pygame.mouse.get_pos()):
+                    if not self.message and self.boutonCommencer.estClique(pygame.mouse.get_pos()) and not self.gameStarted:
                         self.start()
 
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message and not self.afficherBoutonAssurance:
