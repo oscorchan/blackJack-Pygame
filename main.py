@@ -248,16 +248,16 @@ class Game :
 
     def perdre(self):
         self.message = "Perdu !"
-        self.player.money -= self.player.bet
         self.gameStarted = False
 
     def gagner(self):
         self.message = "Gagné !"
-        self.player.money += self.player.bet
+        self.player.money += 2*self.player.bet
         self.gameStarted = False
 
     def egalite(self):
         self.message = "Egalité"
+        self.player.money += self.player.bet
         self.gameStarted = False
 
     def comparerMains(self):
@@ -278,21 +278,25 @@ class Game :
         self.dealer.hand.addCard(self.deck.deal())
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
+        self.player.money -= self.player.bet
 
         if self.player.hand.hasBlackjack() and self.dealer.hand.hasBlackjack():
             self.egalite()
         elif self.player.hand.hasBlackjack():
             self.message = "BlackJack"  
-            self.player.money += self.player.bet * 1.5
+            self.player.money += self.player.bet * 2.5
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
-            if self.dealer.hand.cards[0].value =='1':
-                self.perdre() 
-            else :
-                self.dealer.retournerCarte(0)
+            if self.dealer.hand.cards[1].value == 1:
                 self.afficherBoutonAssurance = True
+                self.dealer.retournerCarte(0)
+            else :
+                self.perdre()
         else:
             self.dealer.retournerCarte(0)
+
+        if self.dealer.hand.cards[1].value == 1:
+            self.afficherBoutonAssurance = True
 
         return
 
@@ -306,6 +310,7 @@ class Game :
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
+                        self.afficherBoutonAssurance = False
                         self.canDouble = False
                         self.player.hit(self.deck)
                         if self.player.isBusted():
@@ -319,9 +324,11 @@ class Game :
                         self.start()
 
                     if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
+                        self.afficherBoutonAssurance = False
                         self.comparerMains()
 
                     if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble:
+                        self.afficherBoutonAssurance = False
                         self.player.bet *= 2
                         self.player.hit(self.deck)
                         if self.player.isBusted():
