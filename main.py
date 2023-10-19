@@ -216,6 +216,7 @@ class Game :
         self.boutonDoublerMise = Bouton(170, HAUTEUR - 55, 30, 30, "x2", BLACK, BLANC, ROUGE)
         self.boutonDiviserMise = Bouton(230, HAUTEUR - 55, 30, 30, "/2", BLACK, BLANC, ROUGE)
         self.boutonAssurance = Bouton(LARGEUR-200, HAUTEUR/2 - 250, 150, 30, "Assurance", BLACK, BLANC, ROUGE)
+        self.boutonPasAssurance = Bouton(LARGEUR-200, HAUTEUR/2 - 200, 200, 30, "Pas d'assurance", BLACK, BLANC, ROUGE)
 
         self.iconeAssurance = Icone(LARGEUR-200, HAUTEUR/2 - 250, 150, 30, "Assurance", BLACK, ROUGE)
         
@@ -260,12 +261,20 @@ class Game :
         self.player.money += self.player.bet
         self.gameStarted = False
 
+    def perdreAvecAssurance(self):
+        self.message = "Perdu !"
+        self.player.money += 1.5 * self.player.bet
+        self.gameStarted = False
+
     def comparerMains(self):
         self.dealer.retournerCarte(0)
         while self.dealer.hand.calculerTotal() < 17 :
             self.dealer.hit(self.deck)
         if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
-            self.perdre()
+            if self.assurence:
+                self.perdreAvecAssurance()
+            else:
+                self.perdre()
         elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
             self.gagner()
         else:
@@ -274,6 +283,7 @@ class Game :
     def start(self):
         self.canDouble = True
         self.gameStarted = True
+        self.assurence = False
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
         self.player.hand.addCard(self.deck.deal())
@@ -309,8 +319,7 @@ class Game :
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message:
-                        self.afficherBoutonAssurance = False
+                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and not self.afficherBoutonAssurance:
                         self.canDouble = False
                         self.player.hit(self.deck)
                         if self.player.isBusted():
@@ -320,15 +329,21 @@ class Game :
                         elif self.player.hand.calculerTotal() == 21:
                             self.comparerMains()
 
+                    if self.boutonAssurance.estClique(pygame.mouse.get_pos()):
+                        self.assurence = True
+                        self.afficherBoutonAssurance = False
+                        self.player.money -= self.player.bet / 2
+                    elif self.boutonPasAssurance.estClique(pygame.mouse.get_pos()):
+                        self.afficherBoutonAssurance = False
+
                     if not self.message and self.boutonCommencer.estClique(pygame.mouse.get_pos()):
                         self.start()
 
-                    if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message :
+                    if self.boutonRester.estClique(pygame.mouse.get_pos()) and not self.player.isBusted() and not self.message and not self.afficherBoutonAssurance:
                         self.afficherBoutonAssurance = False
                         self.comparerMains()
 
-                    if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble:
-                        self.afficherBoutonAssurance = False
+                    if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble and not self.afficherBoutonAssurance:
                         self.player.bet *= 2
                         self.player.hit(self.deck)
                         if self.player.isBusted():
@@ -375,6 +390,7 @@ class Game :
 
             if self.afficherBoutonAssurance:
                 self.boutonAssurance.dessinerPetit(self.screen)
+                self.boutonPasAssurance.dessinerPetit(self.screen)
 
             self.dessinerMonaie()
 
