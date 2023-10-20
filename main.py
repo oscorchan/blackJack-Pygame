@@ -70,8 +70,6 @@ class Icone :
         textSurface = font.render(self.text, 1, self.textCouleur)
         textRectangle = textSurface.get_rect(center = (self.x + self.l / 2, self.y + self.h / 2))
         screen.blit(textSurface, textRectangle)
-
-
         
 class Card :
     def __init__(self, suit, value) -> None:
@@ -153,14 +151,13 @@ class Hand :
         else : 
             return False
     
-
-    
 class Player :
 
     def __init__(self) -> None:
         self.hand = Hand()
         self.money = 500
         self.bet = 50
+        self.hasSplit = False
 
     def dessiner(self, screen, y):
         xOffset = round((LARGEUR - CARTE_LARGEUR - 15)/2)
@@ -229,7 +226,6 @@ class Game :
         self.looseSound = pygame.mixer.Sound("sounds/loose.mp3")
         self.rienNeVasPlusSound = pygame.mixer.SoundType("sounds/rienNeVasPlus.mp3")
         
-
     def reset(self):
         self.gameStarted = True
         if self.deck.cuttingCardDraw:
@@ -283,12 +279,12 @@ class Game :
         self.dealer.retournerCarte(0)
         while self.dealer.hand.calculerTotal() < 17 :
             self.dealer.hit(self.deck)
-        if self.dealer.hand.hasBlackjack :
+        if self.dealer.hand.hasBlackjack() :
             if self.assurence:
                 self.perdreAvecAssurance()
             else:
                 self.perdre()
-        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
+        if self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal():
             self.perdre()
         elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
             self.gagner()
@@ -324,15 +320,11 @@ class Game :
                 self.dealer.retournerCarte(0)
             else :
                 self.perdre()
-                self.looseSound.play()
         else:
             self.dealer.retournerCarte(0)
 
         if self.dealer.hand.cards[1].value == 1:
             self.afficherBoutonAssurance = True
-            
-        print(self.player.hand.cards[0].value)
-        print(self.player.hand.cards[1].value)
             
         if self.player.hand.cards[0].value == self.player.hand.cards[1].value or (self.player.hand.cards[0].value >= 10 and self.player.hand.cards[1].value >= 10):
             self.canSplit = True
@@ -348,8 +340,13 @@ class Game :
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit:
+                        self.player.hasSplit = True
+                        self.canSplit = False
+                        
                     if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and not self.afficherBoutonAssurance:
                         self.canDouble = False
+                        self.canSplit = False
                         self.player.hit(self.deck)
                         if self.player.isBusted():
                             self.message = "Bust !"
@@ -379,13 +376,13 @@ class Game :
                         self.player.hit(self.deck)
                         if self.player.isBusted():
                             self.message = "Bust !"
+                            self.looseSound.play()
                             self.player.money -= self.player.bet
                             self.gameStarted = False
                         else: 
                             self.comparerMains()
 
                         self.player.bet /= 2
-
     
                     if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()) and self.player.money > 0 and self.player.money >= self.player.bet:
                         self.reset()
@@ -434,7 +431,6 @@ class Game :
                 if self.canSplit:
                     self.boutonSplit.dessiner(self.screen)
                 
-
             if not self.gameStarted:
                 self.boutonAugmenterMise.dessiner(self.screen)
                 self.boutonDiminuerMise.dessiner(self.screen)
