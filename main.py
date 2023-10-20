@@ -359,23 +359,27 @@ class Game :
                         self.player.hand.addCard(self.deck.deal())
                         self.player.hand2.addCard(self.deck.deal())
                         
-                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and not self.afficherBoutonAssurance:
+                    if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.message and not self.afficherBoutonAssurance:
                         self.canDouble = False
                         self.canSplit = False
+                        print(self.premiereMainTermine)
                         if not self.premiereMainTermine:
                             self.player.hit(self.player.hand, self.deck)
                             if self.player.isBusted(self.player.hand):
                                 self.looseSound.play()
                                 if self.player.hasSplit:
+                                    print("Fin de la main 1")
                                     self.premiereMainTermine = True
+                                    print(self.premiereMainTermine)
                                 else:
-                                    self.message = "Perdu"
+                                    self.message = "Bust"
                             elif self.player.hand.calculerTotal() == 21:
                                 if self.player.hasSplit:
                                     self.premiereMainTermine = True
+                                    print("Fin de la main 1")
                                 else:
                                     self.comparerMains()
-                        elif self.premiereMainTermine :
+                        elif self.premiereMainTermine == True:
                             print("Main 2 à tiré")
                             self.player.hit(self.player.hand2, self.deck)
                             if self.player.isBusted(self.player.hand2):
@@ -398,12 +402,13 @@ class Game :
                             self.comparerMains()
                         else:
                             self.premiereMainTermine = True
+                            print("Fin de la main 1")
 
                     if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble and not self.afficherBoutonAssurance:
                         self.player.money -= self.player.bet
                         self.player.bet *= 2
                         self.player.hit(self.player.hand, self.deck)
-                        if self.player.isBusted():
+                        if self.player.isBusted(self.player.hand):
                             self.message = "Bust !"
                             self.looseSound.play()
                             self.player.money -= self.player.bet
