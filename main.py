@@ -158,10 +158,10 @@ class Player :
         self.money = 500
         self.bet = 50
         self.hasSplit = False
+        self.hand2 = Hand()
 
-    def dessiner(self, screen, y):
-        xOffset = round((LARGEUR - CARTE_LARGEUR - 15)/2)
-        for card in self.hand.cards:
+    def dessiner(self, screen, xOffset, y, hand):
+        for card in hand.cards:
             imageToDraw = card.image if card.faceUp else card.backImage
             screen.blit(imageToDraw, (xOffset, y))
             xOffset += 20
@@ -292,7 +292,7 @@ class Game :
             self.egalite()
 
     def start(self):
-        self.canDouble = True
+        
         self.gameStarted = True
         self.assurence = False
         self.canSplit = False
@@ -303,6 +303,9 @@ class Game :
         self.dealer.hand.addCard(self.deck.deal())
 
         self.player.money -= self.player.bet
+        
+        if self.player.money >= self.player.bet:
+            self.canDouble = True
 
         self.deck.dealSound.set_volume(1)
 
@@ -340,9 +343,14 @@ class Game :
                 if event.type == pygame.QUIT:
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit:
+                    
+                    if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit and not self.afficherBoutonAssurance:
+                        self.player.money -= self.player.bet
                         self.player.hasSplit = True
                         self.canSplit = False
+                        self.player.hand2.addCard(self.player.hand.cards.pop(1))
+                        self.player.hand.addCard(self.deck.deal())
+                        self.player.hand2.addCard(self.deck.deal())
                         
                     if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and not self.afficherBoutonAssurance:
                         self.canDouble = False
@@ -437,13 +445,19 @@ class Game :
                 self.boutonDoublerMise.dessinerPetit(self.screen)
                 self.boutonDiviserMise.dessinerPetit(self.screen)
 
-            self.player.dessiner(self.screen, HAUTEUR - CARTE_HAUTEUR - 15)
-            self.dealer.dessiner(self.screen, 15)
-
+            self.dealer.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 2, 15, self.dealer.hand)
+        
             if self.message:
                 self.afficherMessage(self.screen, self.message)
                 self.boutonRecommencer.dessiner(self.screen)
-
+                
+            if not self.player.hasSplit:
+                self.player.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 2, HAUTEUR - CARTE_HAUTEUR - 15, self.player.hand)
+            elif self.player.hasSplit:
+                self.player.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 3 * 2, HAUTEUR - CARTE_HAUTEUR - 15, self.player.hand)
+                self.player.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 3, HAUTEUR - CARTE_HAUTEUR - 15, self.player.hand2)
+                    
+                    
             pygame.display.flip()
             self.clock.tick(60)
 
