@@ -189,6 +189,8 @@ class Game :
         self.assurence = False
 
         self.canDouble = False
+        
+        self.canSplit = False
 
         self.gameStarted = False
 
@@ -213,6 +215,7 @@ class Game :
         self.boutonCommencer = Bouton(0, HAUTEUR / 2, 300, 50, "Commencer", BLACK, BLANC, ROUGE)
         self.boutonRester = Bouton(LARGEUR - 200, HAUTEUR / 2 - 70, 150, 50, "Rester", BLACK, BLANC, ROUGE)
         self.boutonDoubler = Bouton(LARGEUR - 200, HAUTEUR / 2 + 70, 150, 50, "Doubler", BLACK, BLANC, ROUGE)
+        self.boutonSplit = Bouton(LARGEUR - 200, HAUTEUR / 2 + 140, 150, 50, "Split", BLACK, BLANC, ROUGE)
         self.boutonAugmenterMise = Bouton(170, HAUTEUR - 95, 30, 30, "+", BLACK, BLANC, ROUGE)
         self.boutonDiminuerMise = Bouton(230, HAUTEUR - 95, 30, 30, "-", BLACK, BLANC, ROUGE)
         self.boutonDoublerMise = Bouton(170, HAUTEUR - 55, 30, 30, "x2", BLACK, BLANC, ROUGE)
@@ -280,21 +283,23 @@ class Game :
         self.dealer.retournerCarte(0)
         while self.dealer.hand.calculerTotal() < 17 :
             self.dealer.hit(self.deck)
-        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
+        if self.dealer.hand.hasBlackjack :
             if self.assurence:
                 self.perdreAvecAssurance()
             else:
                 self.perdre()
+        if self.player.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal()):
+            self.perdre()
         elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
             self.gagner()
         else:
             self.egalite()
 
     def start(self):
-        self.rienNeVasPlusSound.play()
         self.canDouble = True
         self.gameStarted = True
         self.assurence = False
+        self.canSplit = False
 
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
@@ -325,6 +330,12 @@ class Game :
 
         if self.dealer.hand.cards[1].value == 1:
             self.afficherBoutonAssurance = True
+            
+        print(self.player.hand.cards[0].value)
+        print(self.player.hand.cards[1].value)
+            
+        if self.player.hand.cards[0].value == self.player.hand.cards[1].value or (self.player.hand.cards[0].value >= 10 and self.player.hand.cards[1].value >= 10):
+            self.canSplit = True
 
         return
 
@@ -419,9 +430,11 @@ class Game :
             if self.gameStarted:
                 self.boutonTirer.dessiner(self.screen)
                 self.boutonRester.dessiner(self.screen)
-
-            if self.gameStarted and self.canDouble:
-                self.boutonDoubler.dessiner(self.screen)
+                if self.canDouble:
+                    self.boutonDoubler.dessiner(self.screen)
+                if self.canSplit:
+                    self.boutonSplit.dessiner(self.screen)
+                
 
             if not self.gameStarted:
                 self.boutonAugmenterMise.dessiner(self.screen)
