@@ -156,9 +156,12 @@ class Player :
     def __init__(self) -> None:
         self.hand = Hand()
         self.money = 500
-        self.bet = 50
+        self.bet = [50, 0]
         self.hasSplit = False
+        self.hasDouble = False
         self.hand2 = Hand()
+        self.mainGagne = 0
+        self.mainPerdu = 0
 
     def dessiner(self, screen, xOffset, y, hand):
         for card in hand.cards:
@@ -186,6 +189,7 @@ class Game :
         self.assurence = False
 
         self.canDouble = False
+        self.canDoubleHand2 = False
         
         self.premiereMainTermine = False
         
@@ -251,7 +255,7 @@ class Game :
         textRect = textSurface.get_rect(topleft=(10,HAUTEUR - 50))
         self.screen.blit(textSurface, textRect)
 
-        textSurfaceMise = font.render("Mise : "+ str(round(self.player.bet)), 1, BLACK)
+        textSurfaceMise = font.render("Mise : "+ str(round(self.player.bet[0] + self.player.bet[1])), 1, BLACK)
         textMiseRect = textSurfaceMise.get_rect(topleft=(10, HAUTEUR - 90))
         self.screen.blit(textSurfaceMise, textMiseRect)
 
@@ -262,19 +266,19 @@ class Game :
 
     def gagner(self):
         self.message = "Gagné !"
-        self.player.money += 2*self.player.bet
+        self.player.money += 2*self.player.bet[0]
         self.gameStarted = False
         self.winSound.play()
 
     def egalite(self):
         self.message = "Egalité"
-        self.player.money += self.player.bet
+        self.player.money += self.player.bet[0]
         self.gameStarted = False
         self.winSound.play()
 
     def perdreAvecAssurance(self):
         self.message = "Perdu !"
-        self.player.money += 1.5 * self.player.bet
+        self.player.money += 1.5 * self.player.bet[0]
         self.gameStarted = False
         self.winSound.play()
 
@@ -287,18 +291,53 @@ class Game :
                 self.perdreAvecAssurance()
             else:
                 self.perdre()
-        if self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal():
-            self.perdre()
-        elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
-            self.gagner()
+        if self.player.hasSplit:
+            for bet, hand in zip(self.player.bet, [self.player.hand, self.player.hand2]):
+                if self.dealer.hand.calculerTotal() <= 21 and hand.calculerTotal() < self.dealer.hand.calculerTotal():
+                    self.player.mainPerdu += 1
+                elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < hand.calculerTotal()) and not self.player.isBusted(hand):
+                    self.player.money += 2*bet
+                    self.player.mainGagne += 1
+                else:
+                    self.player.money += bet
+            if self.player.mainGagne > self.player.mainPerdu:
+                self.message = "Gagné !"
+                self.gameStarted = False
+                self.winSound.play()
+            elif self.player.mainGagne < self.player.mainPerdu:
+                self.message = "Perdu !"
+                self.gameStarted = False
+                self.looseSound.play()
+            else:
+                self.message = "Egalité"
+                self.gameStarted = False
+                self.winSound.play()
+        
         else:
-            self.egalite()
+            if self.dealer.hand.calculerTotal() <= 21 and self.player.hand.calculerTotal() < self.dealer.hand.calculerTotal():
+                self.perdre()
+            elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < self.player.hand.calculerTotal()):
+                self.gagner()
+            else:
+                self.egalite()
+
+        if self.player.hasDouble:
+            self.player.bet[0] /= 2
+
+        self.player.bet[1] = 0
 
     def start(self):
         
         self.gameStarted = True
         self.assurence = False
         self.canSplit = False
+        self.player.bet[1] = 0
+
+        self.player.mainGagne = 0
+        self.player.mainPerdu = 0
+
+        self.player.hasDouble = False
+        self.player.hasSplit = False
         
         self.premiereMainTermine = False
         
@@ -309,9 +348,9 @@ class Game :
         self.player.hand.addCard(self.deck.deal())
         self.dealer.hand.addCard(self.deck.deal())
 
-        self.player.money -= self.player.bet
+        self.player.money -= self.player.bet[0]
         
-        if self.player.money >= self.player.bet:
+        if self.player.money >= self.player.bet[0]:
             self.canDouble = True
 
         self.deck.dealSound.set_volume(1)
@@ -322,7 +361,7 @@ class Game :
         elif self.player.hand.hasBlackjack():
             self.message = "BlackJack"  
             self.winSound.play()
-            self.player.money += self.player.bet * 2.5
+            self.player.money += self.player.bet[0] * 2.5
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
             if self.dealer.hand.cards[1].value == 1:
@@ -352,7 +391,8 @@ class Game :
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     
                     if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit and not self.afficherBoutonAssurance:
-                        self.player.money -= self.player.bet
+                        self.player.money -= self.player.bet[0]
+                        self.player.bet[1] = self.player.bet[0]
                         self.player.hasSplit = True
                         self.canSplit = False
                         self.player.hand2.addCard(self.player.hand.cards.pop(1))
@@ -362,25 +402,20 @@ class Game :
                     if self.boutonTirer.estClique(pygame.mouse.get_pos()) and not self.message and not self.afficherBoutonAssurance:
                         self.canDouble = False
                         self.canSplit = False
-                        print(self.premiereMainTermine)
                         if not self.premiereMainTermine:
                             self.player.hit(self.player.hand, self.deck)
                             if self.player.isBusted(self.player.hand):
                                 self.looseSound.play()
                                 if self.player.hasSplit:
-                                    print("Fin de la main 1")
                                     self.premiereMainTermine = True
-                                    print(self.premiereMainTermine)
                                 else:
                                     self.message = "Bust"
                             elif self.player.hand.calculerTotal() == 21:
                                 if self.player.hasSplit:
                                     self.premiereMainTermine = True
-                                    print("Fin de la main 1")
                                 else:
                                     self.comparerMains()
                         elif self.premiereMainTermine == True:
-                            print("Main 2 à tiré")
                             self.player.hit(self.player.hand2, self.deck)
                             if self.player.isBusted(self.player.hand2):
                                 self.looseSound.play()
@@ -389,7 +424,7 @@ class Game :
                     if self.boutonAssurance.estClique(pygame.mouse.get_pos()):
                         self.assurence = True
                         self.afficherBoutonAssurance = False
-                        self.player.money -= self.player.bet / 2
+                        self.player.money -= self.player.bet[0] / 2
                     elif self.boutonPasAssurance.estClique(pygame.mouse.get_pos()):
                         self.afficherBoutonAssurance = False
 
@@ -402,49 +437,48 @@ class Game :
                             self.comparerMains()
                         else:
                             self.premiereMainTermine = True
-                            print("Fin de la main 1")
 
                     if self.boutonDoubler.estClique(pygame.mouse.get_pos()) and not self.player.hand.calculerTotal() >= 21 and not self.message and self.canDouble and not self.afficherBoutonAssurance:
-                        self.player.money -= self.player.bet
-                        self.player.bet *= 2
+                        self.player.money -= self.player.bet[0]
+                        self.player.bet[0] *= 2
                         self.player.hit(self.player.hand, self.deck)
+                        self.player.hasDouble = True
                         if self.player.isBusted(self.player.hand):
                             self.message = "Bust !"
                             self.looseSound.play()
-                            self.player.money -= self.player.bet
                             self.gameStarted = False
-                        else: 
+                        elif not self.player.hasSplit: 
                             self.comparerMains()
-
-                        self.player.bet /= 2
+                        else:
+                            self.premiereMainTermine = True
     
-                    if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()) and self.player.money > 0 and self.player.money >= self.player.bet:
+                    if self.message and self.boutonRecommencer.estClique(pygame.mouse.get_pos()) and self.player.money > 0 and self.player.money >= self.player.bet[0]:
                         self.reset()
                         self.start()
                     
                     if not self.gameStarted:
                         if self.boutonAugmenterMise.estClique(pygame.mouse.get_pos()):
-                            if self.player.money >= self.player.bet + 10:
-                                self.player.bet += 10
+                            if self.player.money >= self.player.bet[0] + 10:
+                                self.player.bet[0] += 10
                             else :
-                                self.player.bet = self.player.money
+                                self.player.bet[0] = self.player.money
                         if self.boutonDiminuerMise.estClique(pygame.mouse.get_pos()):
-                            if self.player.bet >= 10:
-                                self.player.bet -= 10
+                            if self.player.bet[0] >= 10:
+                                self.player.bet[0] -= 10
                             else :
-                                self.player.bet = 0
+                                self.player.bet[0] = 0
                         if self.boutonDoublerMise.estClique(pygame.mouse.get_pos()):
-                            if self.player.money >= self.player.bet * 2:
-                                self.player.bet *= 2
+                            if self.player.money >= self.player.bet[0] * 2:
+                                self.player.bet[0] *= 2
                             else :
-                                self.player.bet = self.player.money
+                                self.player.bet[0] = self.player.money
                         if self.boutonDiviserMise.estClique(pygame.mouse.get_pos()):
-                            self.player.bet = round(self.player.bet /2)
-                            if self.player.bet < 10:
+                            self.player.bet[0] = round(self.player.bet[0] /2)
+                            if self.player.bet[0] < 10:
                                 if self.player.money < 10:
-                                    self.player.bet = self.player.money
+                                    self.player.bet[0] = self.player.money
                                 else:
-                                    self.player.bet = 10
+                                    self.player.bet[0] = 10
                     
             self.screen.fill(BACKGROUND_COLOR)
 
