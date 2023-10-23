@@ -306,8 +306,6 @@ class Game :
                 else:
                     self.player.money += bet
 
-            print(self.player.mainGagne)
-            print(self.player.mainPerdu)
             if self.player.mainGagne > self.player.mainPerdu:
                 self.message = "Gagné !"
                 self.gameStarted = False
