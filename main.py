@@ -293,13 +293,16 @@ class Game :
                 self.perdre()
         if self.player.hasSplit:
             for bet, hand in zip(self.player.bet, [self.player.hand, self.player.hand2]):
-                if self.dealer.hand.calculerTotal() <= 21 and hand.calculerTotal() < self.dealer.hand.calculerTotal():
+                if self.dealer.hand.calculerTotal() <= 21 and hand.calculerTotal() < self.dealer.hand.calculerTotal() or self.player.isBusted(hand):
                     self.player.mainPerdu += 1
                 elif self.dealer.hand.calculerTotal() > 21 or (self.dealer.hand.calculerTotal() < hand.calculerTotal()) and not self.player.isBusted(hand):
                     self.player.money += 2*bet
                     self.player.mainGagne += 1
                 else:
                     self.player.money += bet
+
+            print(self.player.mainGagne)
+            print(self.player.mainPerdu)
             if self.player.mainGagne > self.player.mainPerdu:
                 self.message = "Gagné !"
                 self.gameStarted = False
@@ -365,7 +368,8 @@ class Game :
             self.gameStarted = False
         elif self.dealer.hand.hasBlackjack():
             if self.dealer.hand.cards[1].value == 1:
-                self.afficherBoutonAssurance = True
+                if not self.player.hand.hasBlackjack():
+                    self.afficherBoutonAssurance = True
                 self.dealer.retournerCarte(0)
             else :
                 self.perdre()
@@ -375,7 +379,7 @@ class Game :
         if self.dealer.hand.cards[1].value == 1:
             self.afficherBoutonAssurance = True
             
-        if self.player.hand.cards[0].value == self.player.hand.cards[1].value or (self.player.hand.cards[0].value >= 10 and self.player.hand.cards[1].value >= 10):
+        if self.player.hand.cards[0].value == self.player.hand.cards[1].value or (self.player.hand.cards[0].value >= 10 and self.player.hand.cards[1].value >= 10) and self.player.money >= self.player.bet[0]:
             self.canSplit = True
 
         return
@@ -390,7 +394,7 @@ class Game :
                     running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     
-                    if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit and not self.afficherBoutonAssurance:
+                    if self.boutonSplit.estClique(pygame.mouse.get_pos()) and self.canSplit and not self.afficherBoutonAssurance and self.player.money >= self.player.bet[0]:
                         self.player.money -= self.player.bet[0]
                         self.player.bet[1] = self.player.bet[0]
                         self.player.hasSplit = True
@@ -410,6 +414,7 @@ class Game :
                                     self.premiereMainTermine = True
                                 else:
                                     self.message = "Bust"
+                                    self.gameStarted = False
                             elif self.player.hand.calculerTotal() == 21:
                                 if self.player.hasSplit:
                                     self.premiereMainTermine = True
@@ -496,7 +501,7 @@ class Game :
                 self.boutonRester.dessiner(self.screen)
                 if self.canDouble:
                     self.boutonDoubler.dessiner(self.screen)
-                if self.canSplit:
+                if self.canSplit and self.player.money >= self.player.bet[1]:
                     self.boutonSplit.dessiner(self.screen)
                 
             if not self.gameStarted:
