@@ -83,8 +83,6 @@ class Card :
         self.faceUp = not self.faceUp
 
 class Deck :
-    cards = None
-
     def __init__(self) -> None:
         self.cuttingCardDraw = False
         self.cards = []
@@ -93,6 +91,7 @@ class Deck :
                 for value in range(1, 14):
                     self.cards.append(Card(suit, value))
         self.dealSound = pygame.mixer.Sound("sounds/deal.mp3")
+        self.cuttingCardImage = pygame.image.load("images/R_0.png")
 
     def shuffle(self) -> None:
         random.shuffle(self.cards)
@@ -109,6 +108,7 @@ class Deck :
             
             if card.suit == 'R':
                 self.cuttingCardDraw = True
+                card = self.cards.pop()
 
             return card
         else :
@@ -116,6 +116,11 @@ class Deck :
     
     def lenght(self) :
         return len(self.cards)
+    
+    def dessinerCuttingCard(self, screen):
+        if self.cuttingCardDraw == True:
+            screen.blit(self.cuttingCardImage, (20, 20))
+            
     
 class Hand :
     def __init__(self) -> None:
@@ -376,7 +381,7 @@ class Game :
         else:
             self.dealer.retournerCarte(0)
 
-        if self.dealer.hand.cards[1].value == 1:
+        if self.dealer.hand.cards[1].value == 1 and not self.player.hand.hasBlackjack():
             self.afficherBoutonAssurance = True
             
         if self.player.hand.cards[0].value == self.player.hand.cards[1].value or (self.player.hand.cards[0].value >= 10 and self.player.hand.cards[1].value >= 10) and self.player.money >= self.player.bet[0]:
@@ -521,7 +526,8 @@ class Game :
             elif self.player.hasSplit:
                 self.player.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 3 * 2, HAUTEUR - CARTE_HAUTEUR - 15, self.player.hand)
                 self.player.dessiner(self.screen, (LARGEUR - CARTE_LARGEUR - 15) // 3, HAUTEUR - CARTE_HAUTEUR - 15, self.player.hand2)
-                    
+
+            self.deck.dessinerCuttingCard(self.screen)                    
                     
             pygame.display.flip()
             self.clock.tick(60)
